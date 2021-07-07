@@ -11,7 +11,6 @@ public class Inventory {
     public Inventory(XNautilus foNautilus){
         p_oNautilus = foNautilus;
         
-        
         p_oSearch = new SearchEngine(p_oNautilus);
     }
     
