@@ -59,6 +59,8 @@ public class Sales_Detail implements Serializable, XEntity {
     LinkedList laColumns = null;
     
     public Sales_Detail(){
+        laColumns = new LinkedList();
+        
         laColumns.add("sTransNox");
         laColumns.add("nEntryNox");
         laColumns.add("sOrderNox");

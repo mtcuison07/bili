@@ -12,6 +12,7 @@ import org.xersys.bili.dto.PO_Detail;
 import org.xersys.bili.dto.PO_Master;
 import org.xersys.bili.dto.PO_Others;
 import org.xersys.bili.search.InvSearchFactory;
+import org.xersys.kumander.contants.SearchEnum;
 import org.xersys.kumander.iface.LMasDetTrans;
 import org.xersys.kumander.iface.XEntity;
 import org.xersys.kumander.iface.XMasDetTrans;
@@ -166,7 +167,7 @@ public class PurchaseOrder implements XMasDetTrans{
         }
     }
     
-    public JSONObject Search(InvSearchFactory.Type foType, String fsValue, String fsKey, String fsFilter, int fnMaxRow, boolean fbExact){
+    public JSONObject Search(SearchEnum.Type foType, String fsValue, String fsKey, String fsFilter, int fnMaxRow, boolean fbExact){
         if (p_oInventory == null){
             JSONObject loJSON = new JSONObject();
             loJSON.put("result", "error");

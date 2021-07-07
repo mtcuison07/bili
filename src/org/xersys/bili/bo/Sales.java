@@ -12,6 +12,8 @@ import org.xersys.bili.dto.Sales_Detail;
 import org.xersys.bili.dto.Sales_Master;
 import org.xersys.bili.dto.Sales_Others;
 import org.xersys.bili.search.InvSearchFactory;
+import org.xersys.bili.search.SearchEngine;
+import org.xersys.kumander.contants.SearchEnum;
 import org.xersys.kumander.iface.LMasDetTrans;
 import org.xersys.kumander.iface.XEntity;
 import org.xersys.kumander.iface.XMasDetTrans;
@@ -169,12 +171,21 @@ public class Sales implements XMasDetTrans{
         }
     }
     
-    public JSONObject Search(InvSearchFactory.Type foType, String fsValue, String fsKey, String fsFilter, int fnMaxRow, boolean fbExact){
+    @Override
+    public JSONObject Search(SearchEnum.Type foType, String fsValue, String fsKey, String fsFilter, int fnMaxRow, boolean fbExact){
+        JSONObject loJSON = new JSONObject();
+        
         if (p_oInventory == null){
-            JSONObject loJSON = new JSONObject();
             loJSON.put("result", "error");
             loJSON.put("message", "Inventory object is not set.");
             return loJSON;
+        }
+        
+        if (p_nEditMode != EditMode.ADDNEW &&
+            p_nEditMode != EditMode.ADDNEW){
+            loJSON.put("result", "error");
+            loJSON.put("message", "Invalid edit mode detected.");
+            return loJSON;        
         }
         
         p_oInventory.Search().setKey(fsKey);

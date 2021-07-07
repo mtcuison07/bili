@@ -166,11 +166,4 @@ public class InvSearchFactory{
                     ", Inv_Master b" +
                 " WHERE a.sStockIDx = b.sStockIDx";
     }
-    
-    public enum Type{
-        searchItem,
-        searchItemDisplayOtherInfo,
-        searchBranchInventory,
-        searchBranchInventoryDisplayOtherInfo
-    }
 }
