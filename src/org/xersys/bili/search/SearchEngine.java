@@ -48,18 +48,44 @@ public class SearchEngine implements XSearch{
     public JSONObject Search(SearchEnum.Type foFactory, Object foValue) {
         _instance = new InvSearchFactory(_nautilus, _key, _filter, _max, _exact);
         
+        JSONObject loJSON = null;
+        String lsColName;
+        
         switch(foFactory){
-            case searchInvItemSimple:        
-                return _instance.searchItem((String) foValue, "sStockIDx»sBarCodex»sDescript");
+            case searchInvItemSimple:      
+                lsColName = "sBarCodex»sDescript»sStockIDx";
+                loJSON = _instance.searchItem((String) foValue, lsColName);
+                if ("success".equals((String) loJSON.get("result"))) {
+                    loJSON.put("headers", "Part Number»Description»ID");
+                    loJSON.put("colname", lsColName);
+                }
+                break;
             case searchInvItemComplex:
-                return _instance.searchItem((String) foValue, "sStockIDx»sBarCodex»sDescript»sBriefDsc»sAltBarCd»sCategrCd»sBrandCde»sModelCde»sColorCde»sInvTypCd»nUnitPrce»nSelPrce1");
+                lsColName = "sBarCodex»sDescript»sCategrCd»sBrandCde»sModelCde»sColorCde»sInvTypCd»nUnitPrce»nSelPrce1»sStockIDx";
+                loJSON = _instance.searchItem((String) foValue, lsColName);
+                if ("success".equals((String) loJSON.get("result"))) {
+                    loJSON.put("headers", "Part Number»Description»Category»Brand»Model»Color»Inv. Type»Inv. Price»SRP»ID");
+                    loJSON.put("colname", lsColName);
+                }
+                break;
             case searchInvBranchSimple:
-                return _instance.searchBranchInventory((String) foValue, "sStockIDx»sBarCodex»sDescript");
+                lsColName = "sBarCodex»sDescript»sStockIDx";
+                loJSON = _instance.searchBranchInventory((String) foValue, lsColName);
+                if ("success".equals((String) loJSON.get("result"))) {
+                    loJSON.put("headers", "Part Number»Description»ID");
+                    loJSON.put("colname", lsColName);
+                }
+                break;
             case searchInvBranchComplex:
-                return _instance.searchBranchInventory((String) foValue, "sStockIDx»sBarCodex»sDescript»sBriefDsc»sAltBarCd»sCategrCd»sBrandCde»sModelCde»sColorCde»sInvTypCd»nUnitPrce»nSelPrce1");
-                
+                lsColName = "sBarCodex»sDescript»sCategrCd»sBrandCde»sModelCde»sColorCde»sInvTypCd»nUnitPrce»nSelPrce1»sStockIDx";
+                loJSON = _instance.searchBranchInventory((String) foValue, lsColName);
+                if ("success".equals((String) loJSON.get("result"))) {
+                    loJSON.put("headers", "Part Number»Description»Category»Brand»Model»Color»Inv. Type»Inv. Price»SRP»ID");
+                    loJSON.put("colname", lsColName);
+                }
+                break;
         }
         
-        return null;
+        return loJSON;
     }
 }
