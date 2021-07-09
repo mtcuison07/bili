@@ -4,6 +4,9 @@ import com.mysql.jdbc.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -11,8 +14,6 @@ import org.json.simple.parser.ParseException;
 import org.xersys.bili.dto.Sales_Detail;
 import org.xersys.bili.dto.Sales_Master;
 import org.xersys.bili.dto.Sales_Others;
-import org.xersys.bili.search.InvSearchFactory;
-import org.xersys.bili.search.SearchEngine;
 import org.xersys.kumander.contants.SearchEnum;
 import org.xersys.kumander.iface.LMasDetTrans;
 import org.xersys.kumander.iface.XEntity;
@@ -21,26 +22,31 @@ import org.xersys.kumander.iface.XNautilus;
 import org.xersys.kumander.util.MiscUtil;
 import org.xersys.kumander.util.SQLUtil;
 import org.xersys.kumander.contants.EditMode;
+import org.xersys.kumander.contants.RecordStatus;
 import org.xersys.kumander.contants.TransactionStatus;
+import org.xersys.kumander.util.CommonUtil;
 
 public class Sales implements XMasDetTrans{
-    XNautilus p_oNautilus;
-    LMasDetTrans p_oListener;
+    private final String SOURCE_CODE = "Sale";
     
-    Inventory p_oInventory;
+    private XNautilus p_oNautilus;
+    private LMasDetTrans p_oListener;
     
-    boolean p_bSaveToDisk;
-    boolean p_bWithParent;
+    private Inventory p_oInventory;
     
-    String p_sBranchCd;
-    String p_sMessagex;
+    private boolean p_bSaveToDisk;
+    private boolean p_bWithParent;
     
-    int p_nEditMode;
-    int p_nTranStat;
+    private String p_sOrderNox;
+    private String p_sBranchCd;
+    private String p_sMessagex;
     
-    Sales_Master p_oMaster;
-    ArrayList<Sales_Detail> p_oDetail;
-    ArrayList<Sales_Others> p_oOthers;
+    private int p_nEditMode;
+    private int p_nTranStat;
+    
+    private Sales_Master p_oMaster;
+    private ArrayList<Sales_Detail> p_oDetail;
+    private ArrayList<Sales_Others> p_oOthers;
     
     public Sales(XNautilus foNautilus, String fsBranchCd, boolean fbWithParent){
         p_oNautilus = foNautilus;
@@ -200,15 +206,43 @@ public class Sales implements XMasDetTrans{
     public boolean NewTransaction() {
         System.out.println(this.getClass().getSimpleName() + ".NewTransaction()");
         
+        p_sOrderNox = "";
+        
         p_oMaster = new Sales_Master();
         p_oDetail = new ArrayList<>();
         p_oOthers = new ArrayList<>();
         
         addDetail();
+        saveToDisk(RecordStatus.ACTIVE);
         
         p_nEditMode = EditMode.ADDNEW;
         
         return true;
+    }
+    
+    @Override
+    public boolean NewTransaction(String fsOrderNox) {
+        System.out.println(this.getClass().getSimpleName() + ".NewTransaction(String fsOrderNox)");
+        
+        if (fsOrderNox.isEmpty()) return NewTransaction();
+        
+        ResultSet loTran = null;
+        boolean lbLoad = false;
+        
+        try {
+            loTran = CommonUtil.getTempOrder(p_oNautilus, SOURCE_CODE, fsOrderNox);
+            
+            if (loTran.next()){
+                lbLoad = toDTO(loTran.getString("sPayloadx"));
+            }
+        } catch (SQLException ex) {
+            setMessage(ex.getMessage());
+            lbLoad = false;
+        } finally {
+            MiscUtil.close(loTran);
+        }
+        
+        return lbLoad;
     }
 
     @Override
@@ -525,15 +559,22 @@ public class Sales implements XMasDetTrans{
         p_sMessagex = fsValue;
     }
     
-    private void saveToDisk(){
+    private void saveToDisk(String fsRecdStat){
         if (p_bSaveToDisk){
-            System.out.println(toJSONString());
+            String lsPayloadx = toJSONString();
+            
+            if (p_sOrderNox.isEmpty()){
+                String lsOrderNox = CommonUtil.getNextReference(p_oNautilus.getConnection().getConnection(), "xxxTempTransactions", "sOrderNox", "sSourceCd = " + SQLUtil.toSQL(SOURCE_CODE));
+                CommonUtil.saveTempOrder(p_oNautilus, SOURCE_CODE, lsOrderNox, lsPayloadx);
+            } else
+                CommonUtil.saveTempOrder(p_oNautilus, SOURCE_CODE, p_sOrderNox, lsPayloadx, fsRecdStat);
         }
     }
     
     private String toJSONString(){
         JSONParser loParser = new JSONParser();
         JSONArray loDetail = new JSONArray();
+        JSONArray loOthers = new JSONArray();
         JSONObject loMaster;
         JSONObject loJSON;
 
@@ -544,10 +585,16 @@ public class Sales implements XMasDetTrans{
                 loJSON = (JSONObject) loParser.parse(p_oDetail.get(lnCtr).toJSONString());
                 loDetail.add(loJSON);
             }
+            
+            for (int lnCtr = 0; lnCtr < p_oOthers.size(); lnCtr++){
+                loJSON = (JSONObject) loParser.parse(p_oOthers.get(lnCtr).toJSONString());
+                loOthers.add(loJSON);
+            }
 
             loJSON = new JSONObject();
             loJSON.put("master", loMaster);
             loJSON.put("detail", loDetail);
+            loJSON.put("others", loOthers);
             
             return loJSON.toJSONString();
         } catch (ParseException ex) {
@@ -555,6 +602,75 @@ public class Sales implements XMasDetTrans{
         }
         
         return "";
+    }
+    
+    private boolean toDTO(String fsPayloadx){
+        boolean lbLoad = false;
+        
+        if (fsPayloadx.isEmpty()) return lbLoad;
+        
+        JSONParser loParser = new JSONParser();
+        
+        JSONObject loJSON;
+        JSONObject loMaster;
+        JSONArray laDetail;
+        JSONArray laOthers;
+        
+        
+        p_oMaster = new Sales_Master();
+        p_oDetail = new ArrayList<>();
+        p_oOthers = new ArrayList<>();
+        
+        try {
+            loJSON = (JSONObject) loParser.parse(fsPayloadx);
+            loMaster = (JSONObject) loJSON.get("master");
+            laDetail = (JSONArray) loJSON.get("detail");
+            laOthers = (JSONArray) loJSON.get("others");
+        
+            int lnCtr;
+            String key;
+            Iterator iterator;
+            
+            
+            for(iterator = loMaster.keySet().iterator(); iterator.hasNext();) {
+                key = (String) iterator.next();
+                p_oMaster.setValue(key, loMaster.get(key));
+            }
+            
+            JSONObject loDetail;
+            Sales_Detail loSalesDet;
+            
+            for(lnCtr = 0; lnCtr <= laDetail.size()-1; lnCtr++){
+                loSalesDet = new Sales_Detail();
+                loDetail = (JSONObject) laDetail.get(lnCtr);
+                
+                for(iterator = loDetail.keySet().iterator(); iterator.hasNext();) {
+                    key = (String) iterator.next();
+                    loSalesDet.setValue(key, loDetail.get(key));
+                }
+                p_oDetail.add(loSalesDet);
+            }
+            
+            JSONObject loOthers;
+            Sales_Others loSalesOth;
+            
+            for(lnCtr = 0; lnCtr <= laOthers.size()-1; lnCtr++){
+                loSalesOth = new Sales_Others();
+                loOthers = (JSONObject) laOthers.get(lnCtr);
+                
+                for(iterator = loOthers.keySet().iterator(); iterator.hasNext();) {
+                    key = (String) iterator.next();
+                    loSalesOth.setValue(key, loOthers.get(key));
+                }
+                p_oOthers.add(loSalesOth);
+            }
+            
+            lbLoad = true;
+        } catch (ParseException ex) {
+            setMessage(ex.getMessage());
+        }
+        
+        return lbLoad;
     }
     
     private Connection getConnection(){         

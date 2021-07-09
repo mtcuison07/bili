@@ -721,4 +721,9 @@ public class PurchaseOrder implements XMasDetTrans{
     
         return true;
     }
+
+    @Override
+    public boolean NewTransaction(String fsOrderNox) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }
