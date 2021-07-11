@@ -3,8 +3,9 @@
     <editor-bookmarks xmlns="http://www.netbeans.org/ns/editor-bookmarks/2" lastBookmarkId="0"/>
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group name="kumander">
-            <file>file:/F:/xurpas/bili/src/org/xersys/bili/search/SearchEngine.java</file>
-            <file>file:/F:/xurpas/bili/src/org/xersys/bili/search/InvSearchFactory.java</file>
+            <file>file:/F:/xurpas/bili/src/org/xersys/bili/dto/Sales_Master.java</file>
+            <file>file:/F:/xurpas/bili/src/org/xersys/bili/bo/PurchaseOrder.java</file>
+            <file>file:/F:/xurpas/bili/src/org/xersys/bili/bo/Sales.java</file>
         </group>
     </open-files>
 </project-private>
