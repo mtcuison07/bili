@@ -5,8 +5,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -86,11 +84,23 @@ public class Sales implements XMasDetTrans{
         }
         
         p_oMaster.setValue(fsFieldNm, foValue);
+        
+        saveToDisk("1");;
     }
 
     @Override
     public Object getMaster(String fsFieldNm) {
         return p_oMaster.getValue(fsFieldNm);
+    }
+    
+    @Override
+    public void setMaster(int fnIndex, Object foValue) {
+        setMaster(p_oMaster.getColumn(fnIndex), foValue);
+    }
+
+    @Override
+    public Object getMaster(int fnIndex) {
+        return getMaster(p_oMaster.getColumn(fnIndex));
     }
 
     @Override
@@ -111,6 +121,8 @@ public class Sales implements XMasDetTrans{
             computeTotal();
             p_oListener.MasterRetreive("nTranTotl", p_oMaster.getValue("nTranTotl"));
         }
+        
+        saveToDisk("1");;
     }
 
     @Override
@@ -145,6 +157,9 @@ public class Sales implements XMasDetTrans{
                 p_oOthers.add(new Sales_Others());
             }
         }
+        
+        saveToDisk("1");;
+        
         return true;
     }
 
@@ -154,6 +169,8 @@ public class Sales implements XMasDetTrans{
         p_oOthers.remove(fnRow);
         
         if (p_oDetail.isEmpty()) return addDetail();
+        
+        saveToDisk("1");;
         
         return true;
     }
@@ -170,7 +187,7 @@ public class Sales implements XMasDetTrans{
         switch (fsFieldNm){
             case "sBarCodex":
                 return null;
-            case "sDesript":
+            case "sDescript":
                 return null;
             default:
                 return null;
@@ -241,6 +258,9 @@ public class Sales implements XMasDetTrans{
         } finally {
             MiscUtil.close(loTran);
         }
+        
+        p_sOrderNox = fsOrderNox;
+        p_nEditMode = EditMode.ADDNEW;
         
         return lbLoad;
     }

@@ -61,10 +61,10 @@ public class SearchEngine implements XSearch{
                 }
                 break;
             case searchInvItemComplex:
-                lsColName = "sBarCodex»sDescript»sCategrCd»sBrandCde»sModelCde»sColorCde»sInvTypCd»nUnitPrce»nSelPrce1»sStockIDx";
+                lsColName = "sBarCodex»sDescript»nUnitPrce»nSelPrce1»sBrandCde»sModelCde»sColorCde»sCategrCd»sInvTypCd»sStockIDx";
                 loJSON = _instance.searchItem((String) foValue, lsColName);
                 if ("success".equals((String) loJSON.get("result"))) {
-                    loJSON.put("headers", "Part Number»Description»Category»Brand»Model»Color»Inv. Type»Inv. Price»SRP»ID");
+                    loJSON.put("headers", "Part Number»Description»Inv. Price»SRP»Brand»Model»Color»Category»Inv. Type»ID");
                     loJSON.put("colname", lsColName);
                 }
                 break;
@@ -77,10 +77,10 @@ public class SearchEngine implements XSearch{
                 }
                 break;
             case searchInvBranchComplex:
-                lsColName = "sBarCodex»sDescript»sCategrCd»sBrandCde»sModelCde»sColorCde»sInvTypCd»nUnitPrce»nSelPrce1»sStockIDx";
+                lsColName = "sBarCodex»sDescript»nUnitPrce»nSelPrce1»sBrandCde»sModelCde»sColorCde»sCategrCd»sInvTypCd»sStockIDx";
                 loJSON = _instance.searchBranchInventory((String) foValue, lsColName);
                 if ("success".equals((String) loJSON.get("result"))) {
-                    loJSON.put("headers", "Part Number»Description»Category»Brand»Model»Color»Inv. Type»Inv. Price»SRP»ID");
+                    loJSON.put("headers", "Part Number»Description»Inv. Price»SRP»Brand»Model»Color»Category»Inv. Type»ID");
                     loJSON.put("colname", lsColName);
                 }
                 break;
