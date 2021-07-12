@@ -11,7 +11,6 @@ import org.json.simple.parser.ParseException;
 import org.xersys.bili.dto.PO_Detail;
 import org.xersys.bili.dto.PO_Master;
 import org.xersys.bili.dto.PO_Others;
-import org.xersys.bili.search.InvSearchFactory;
 import org.xersys.kumander.contants.SearchEnum;
 import org.xersys.kumander.iface.LMasDetTrans;
 import org.xersys.kumander.iface.XEntity;
@@ -734,6 +733,16 @@ public class PurchaseOrder implements XMasDetTrans{
 
     @Override
     public Object getMaster(int fnIndex) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public void setDetail(int fnRow, int fnIndex, Object foValue) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Object getDetail(int fnRow, int fnIndex) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

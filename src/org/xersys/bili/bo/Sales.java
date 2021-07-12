@@ -111,6 +111,12 @@ public class Sales implements XMasDetTrans{
             return;
         }
         
+        switch(fsFieldNm){
+            case "sStockIDx":
+                loadDetailByCode(fnRow, fsFieldNm, (String) foValue);
+                break;
+        }
+        
         p_oDetail.get(fnRow).setValue(fsFieldNm, foValue);
         
         if (fsFieldNm.equals("nQuantity") ||
@@ -128,6 +134,23 @@ public class Sales implements XMasDetTrans{
     @Override
     public Object getDetail(int fnRow, String fsFieldNm) {
         return p_oDetail.get(fnRow).getValue(fsFieldNm);
+    }
+    
+    @Override
+    public void setDetail(int fnRow, int fnIndex, Object foValue) {
+        setDetail(fnRow, p_oDetail.get(0).getColumn(fnIndex), foValue);
+    }
+
+    @Override
+    public Object getDetail(int fnRow, int fnIndex) {        
+        switch (fnIndex){
+            case 100:
+                return p_oOthers.get(fnRow).getBarCode();
+            case 101:
+                return p_oOthers.get(fnRow).getDescript();
+            default:
+                return getDetail(fnRow, p_oDetail.get(0).getColumn(fnIndex));
+        }
     }
 
     @Override
@@ -849,5 +872,32 @@ public class Sales implements XMasDetTrans{
         }
     
         return true;
+    }
+    
+    private void loadDetailByCode(int fnRow, String fsFieldNm, String fsValue){
+        JSONObject loJSON;
+        JSONArray loArray;
+        
+        switch(fsFieldNm){
+            case "sStockIDx":
+                loJSON = Search(SearchEnum.Type.searchInvBranchComplex, fsValue, "a.sStockIDx", "", 1, true);
+                
+                if ("success".equals((String) loJSON.get("result"))){
+                    loArray = (JSONArray) loJSON.get("payload");
+                    loJSON = (JSONObject) loArray.get(0);
+                    
+                    p_oDetail.get(fnRow).setValue("sStockIDx", (String) loJSON.get("sStockIDx"));
+                    p_oDetail.get(fnRow).setValue("nInvCostx", (Number) loJSON.get("nUnitPrce"));
+                    p_oDetail.get(fnRow).setValue("nUnitPrce", (Number) loJSON.get("nSelPrce1"));
+                    p_oDetail.get(fnRow).setValue("nQuantity", (long) 1);
+                
+                    p_oOthers.get(fnRow).setBarCode((String) loJSON.get("sBarCodex"));
+                    p_oOthers.get(fnRow).setDescript((String) loJSON.get("sDescript"));
+                    p_oOthers.get(fnRow).setOtherInfo("Other Info");
+                    p_oOthers.get(fnRow).setQtyOnHand(100);
+                    addDetail();
+                }
+                
+        }
     }
 }
