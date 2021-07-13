@@ -745,4 +745,9 @@ public class PurchaseOrder implements XMasDetTrans{
     public Object getDetail(int fnRow, int fnIndex) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
+    @Override
+    public Object TempTransactions() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }
