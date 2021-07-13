@@ -84,6 +84,11 @@ public class Sales_Master implements Serializable, XEntity {
     @Column(name = "sAprvCode")
     private String sAprvCode;    
     
+    @Basic(optional = false)
+    @Column(name = "dCreatedx")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date dCreatedx;
+    
     @Column(name = "sModified")
     private String sModified;
     
@@ -116,6 +121,7 @@ public class Sales_Master implements Serializable, XEntity {
         laColumns.add("sSourceCd");
         laColumns.add("cTranStat");
         laColumns.add("sAprvCode");
+        laColumns.add("dCreatedx");
         laColumns.add("sModified");
         
         sTransNox = "";
@@ -184,8 +190,9 @@ public class Sales_Master implements Serializable, XEntity {
             case 18: return sSourceCd;
             case 19: return cTranStat;
             case 20: return sAprvCode;
-            case 21: return sModified;
-            case 22: return dModified;
+            case 21: return dCreatedx;
+            case 22: return sModified;
+            case 23: return dModified;
             default: return null;
         }
     }
@@ -236,8 +243,9 @@ public class Sales_Master implements Serializable, XEntity {
             case 18: sSourceCd = (String) foValue; break;
             case 19: cTranStat = (String) foValue; break;
             case 20: sAprvCode = (String) foValue; break;
-            case 21: sModified = (String) foValue; break;
-            case 22: dModified = (Date) foValue; break;
+            case 21: dCreatedx = (Date) foValue; break;
+            case 22: sModified = (String) foValue; break;
+            case 23: dModified = (Date) foValue; break;
         }    
     }
 

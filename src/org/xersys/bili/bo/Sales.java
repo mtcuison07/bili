@@ -12,6 +12,7 @@ import org.json.simple.parser.ParseException;
 import org.xersys.bili.dto.Sales_Detail;
 import org.xersys.bili.dto.Sales_Master;
 import org.xersys.bili.dto.Sales_Others;
+import org.xersys.bili.dto.Temp_Transactions;
 import org.xersys.kumander.contants.SearchEnum;
 import org.xersys.kumander.iface.LMasDetTrans;
 import org.xersys.kumander.iface.XEntity;
@@ -45,6 +46,7 @@ public class Sales implements XMasDetTrans{
     private Sales_Master p_oMaster;
     private ArrayList<Sales_Detail> p_oDetail;
     private ArrayList<Sales_Others> p_oOthers;
+    private ArrayList<Temp_Transactions> p_oTemp;
     
     public Sales(XNautilus foNautilus, String fsBranchCd, boolean fbWithParent){
         p_oNautilus = foNautilus;
@@ -53,6 +55,7 @@ public class Sales implements XMasDetTrans{
         p_nEditMode = EditMode.UNKNOWN;
         
         p_oInventory = new Inventory(p_oNautilus);
+        loadTempTransactions();
     }
     
     public Sales(XNautilus foNautilus, String fsBranchCd, boolean fbWithParent, int fnTranStat){
@@ -63,6 +66,7 @@ public class Sales implements XMasDetTrans{
         p_nEditMode = EditMode.UNKNOWN;
         
         p_oInventory = new Inventory(p_oNautilus);
+        loadTempTransactions();
     }
 
     @Override
@@ -84,8 +88,9 @@ public class Sales implements XMasDetTrans{
         }
         
         p_oMaster.setValue(fsFieldNm, foValue);
+        p_oListener.MasterRetreive(fsFieldNm, p_oMaster.getValue(fsFieldNm));
         
-        saveToDisk("1");;
+        saveToDisk("1");
     }
 
     @Override
@@ -114,6 +119,8 @@ public class Sales implements XMasDetTrans{
         switch(fsFieldNm){
             case "sStockIDx":
                 loadDetailByCode(fnRow, fsFieldNm, (String) foValue);
+                computeTotal();
+                p_oListener.MasterRetreive("nTranTotl", p_oMaster.getValue("nTranTotl"));
                 break;
         }
         
@@ -148,6 +155,10 @@ public class Sales implements XMasDetTrans{
                 return p_oOthers.get(fnRow).getBarCode();
             case 101:
                 return p_oOthers.get(fnRow).getDescript();
+            case 102:
+                return p_oOthers.get(fnRow).getOtherInfo();
+            case 103:
+                return p_oOthers.get(fnRow).getQtyOnHand();
             default:
                 return getDetail(fnRow, p_oDetail.get(0).getColumn(fnIndex));
         }
@@ -255,6 +266,7 @@ public class Sales implements XMasDetTrans{
         addDetail();
         saveToDisk(RecordStatus.ACTIVE);
         
+        loadTempTransactions();
         p_nEditMode = EditMode.ADDNEW;
         
         return true;
@@ -284,6 +296,9 @@ public class Sales implements XMasDetTrans{
         
         p_sOrderNox = fsOrderNox;
         p_nEditMode = EditMode.ADDNEW;
+        
+        computeTotal();
+        loadTempTransactions();
         
         return lbLoad;
     }
@@ -388,6 +403,11 @@ public class Sales implements XMasDetTrans{
         System.out.println(this.getClass().getSimpleName() + ".SearchTransaction()");
         
         return true;
+    }
+    
+    @Override
+    public ArrayList<Temp_Transactions> TempTransactions() {
+        return p_oTemp;
     }
 
     @Override
@@ -595,7 +615,13 @@ public class Sales implements XMasDetTrans{
         p_nEditMode  = EditMode.UNKNOWN;
         
         return true;
-    }    
+    }  
+    
+    public boolean DeleteTempTransaction(Temp_Transactions foValue) {
+        boolean lbSuccess =  CommonUtil.saveTempOrder(p_oNautilus, foValue.getSourceCode(), foValue.getOrderNo(), foValue.getPayload(), "0");
+        loadTempTransactions();
+        return lbSuccess;
+    }
     
     //added methods
     private void setMessage(String fsValue){
@@ -607,10 +633,35 @@ public class Sales implements XMasDetTrans{
             String lsPayloadx = toJSONString();
             
             if (p_sOrderNox.isEmpty()){
-                String lsOrderNox = CommonUtil.getNextReference(p_oNautilus.getConnection().getConnection(), "xxxTempTransactions", "sOrderNox", "sSourceCd = " + SQLUtil.toSQL(SOURCE_CODE));
-                CommonUtil.saveTempOrder(p_oNautilus, SOURCE_CODE, lsOrderNox, lsPayloadx);
+                p_sOrderNox = CommonUtil.getNextReference(p_oNautilus.getConnection().getConnection(), "xxxTempTransactions", "sOrderNox", "sSourceCd = " + SQLUtil.toSQL(SOURCE_CODE));
+                CommonUtil.saveTempOrder(p_oNautilus, SOURCE_CODE, p_sOrderNox, lsPayloadx);
             } else
                 CommonUtil.saveTempOrder(p_oNautilus, SOURCE_CODE, p_sOrderNox, lsPayloadx, fsRecdStat);
+        }
+    }
+    
+    private void loadTempTransactions(){
+        String lsSQL = "SELECT * FROM xxxTempTransactions" +
+                        " WHERE cRecdStat = '1'";
+        
+        ResultSet loRS = p_oNautilus.executeQuery(lsSQL);
+        
+        Temp_Transactions loTemp;
+        p_oTemp = new ArrayList<>();
+        
+        try {
+            while(loRS.next()){
+                loTemp = new Temp_Transactions();
+                loTemp.setSourceCode(loRS.getString("sSourceCd"));
+                loTemp.setOrderNo(loRS.getString("sOrderNox"));
+                loTemp.setDateCreated(SQLUtil.toDate(loRS.getString("dCreatedx"), SQLUtil.FORMAT_TIMESTAMP));
+                loTemp.setPayload(loRS.getString("sPayloadx"));
+                p_oTemp.add(loTemp);
+            }
+        } catch (SQLException ex) {
+            System.err.println(ex.getMessage());
+        } finally {
+            MiscUtil.close(loRS);
         }
     }
     
@@ -854,15 +905,27 @@ public class Sales implements XMasDetTrans{
         return null;
     }
     
-    private void computeTotal(){
+    private void computeTotal(){        
+        int lnQuantity;
+        double lnUnitPrce;
+        double lnDiscount;
+        double lnAddDiscx;
+        double lnDetlTotl;
+        
         double lnTranTotal = 0.00;
         
         for (int lnCtr = 0; lnCtr < p_oDetail.size(); lnCtr++){
-            lnTranTotal += (int) p_oDetail.get(lnCtr).getValue("nQuantity") * 
-                            ((Number) p_oDetail.get(lnCtr).getValue("nUnitPrce")).doubleValue();
+            lnQuantity = (int) getDetail(lnCtr, "nQuantity");
+            lnUnitPrce = ((Number)getDetail(lnCtr, "nUnitPrce")).doubleValue();
+            lnDiscount = ((Number)getDetail(lnCtr, "nDiscount")).doubleValue();
+            lnAddDiscx = ((Number)getDetail(lnCtr, "nAddDiscx")).doubleValue();
+            lnDetlTotl = (lnQuantity * (lnUnitPrce - (lnUnitPrce * lnDiscount))) - lnAddDiscx;
+            
+            lnTranTotal += lnDetlTotl;
         }
         
         p_oMaster.setValue("nTranTotl", lnTranTotal);
+        saveToDisk("1");
     }
     
     private boolean isEntryOK(){
