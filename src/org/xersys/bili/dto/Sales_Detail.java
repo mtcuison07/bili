@@ -155,10 +155,10 @@ public class Sales_Detail implements Serializable, XEntity {
     public void setValue(int fnColumn, Object foValue) {
         switch(fnColumn){
             case 1: sTransNox = (String) foValue; break;
-            case 2: nEntryNox = (int) (long) foValue; break;
+            case 2: nEntryNox = Integer.parseInt(String.valueOf(foValue)); break;
             case 3: sOrderNox = (String) foValue; break;
             case 4: sStockIDx = (String) foValue; break;
-            case 5: nQuantity = (int) (long) foValue; break;
+            case 5: nQuantity = Integer.parseInt(String.valueOf(foValue)); break;
             case 6: nInvCostx = (Number) foValue; break;
             case 7: nUnitPrce = (Number) foValue; break;
             case 8: nDiscount = (Number) foValue; break;

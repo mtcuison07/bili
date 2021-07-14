@@ -90,7 +90,7 @@ public class Sales implements XMasDetTrans{
         p_oMaster.setValue(fsFieldNm, foValue);
         p_oListener.MasterRetreive(fsFieldNm, p_oMaster.getValue(fsFieldNm));
         
-        saveToDisk("1");
+        saveToDisk(RecordStatus.ACTIVE);
     }
 
     @Override
@@ -121,7 +121,7 @@ public class Sales implements XMasDetTrans{
                 loadDetailByCode(fnRow, fsFieldNm, (String) foValue);
                 computeTotal();
                 p_oListener.MasterRetreive("nTranTotl", p_oMaster.getValue("nTranTotl"));
-                break;
+                return;
         }
         
         p_oDetail.get(fnRow).setValue(fsFieldNm, foValue);
@@ -135,7 +135,7 @@ public class Sales implements XMasDetTrans{
             p_oListener.MasterRetreive("nTranTotl", p_oMaster.getValue("nTranTotl"));
         }
         
-        saveToDisk("1");;
+        saveToDisk(RecordStatus.ACTIVE);
     }
 
     @Override
@@ -192,7 +192,7 @@ public class Sales implements XMasDetTrans{
             }
         }
         
-        saveToDisk("1");;
+        saveToDisk(RecordStatus.ACTIVE);
         
         return true;
     }
@@ -204,7 +204,7 @@ public class Sales implements XMasDetTrans{
         
         if (p_oDetail.isEmpty()) return addDetail();
         
-        saveToDisk("1");;
+        saveToDisk(RecordStatus.ACTIVE);
         
         return true;
     }
@@ -239,9 +239,15 @@ public class Sales implements XMasDetTrans{
         }
         
         if (p_nEditMode != EditMode.ADDNEW &&
-            p_nEditMode != EditMode.ADDNEW){
+            p_nEditMode != EditMode.UPDATE){
             loJSON.put("result", "error");
             loJSON.put("message", "Invalid edit mode detected.");
+            return loJSON;        
+        }
+        
+        if (fsValue.isEmpty()){
+            loJSON.put("result", "error");
+            loJSON.put("message", "Search value must not be empty.");
             return loJSON;        
         }
         
@@ -314,19 +320,19 @@ public class Sales implements XMasDetTrans{
         }
         
         if (!fbConfirmed){
-            System.out.println(toJSONString());
+            saveToDisk(RecordStatus.ACTIVE);
             return true;
         }
         
         String lsSQL = "";
         
+        if (!isEntryOK()) return false;
+        
         Sales_Master loOldEnt = null;
         Sales_Master loNewEnt = null;
 
         loNewEnt = (Sales_Master) p_oMaster;
-        
-        if (!isEntryOK()) return false;
-        
+
         try {
             if (!p_bWithParent) p_oNautilus.beginTrans();
         
@@ -378,6 +384,8 @@ public class Sales implements XMasDetTrans{
                 else
                     setMessage("No record updated");
             } 
+            
+            saveToDisk(RecordStatus.INACTIVE);
 
             if (!p_bWithParent) {
                 if(!p_oNautilus.getMessage().isEmpty())
@@ -785,6 +793,7 @@ public class Sales implements XMasDetTrans{
         Sales_Detail loOldDet;
         
         int lnCtr;
+        int lnRow;
         String lsSQL;
         
         for (lnCtr = 0; lnCtr <= loDetail.size() - 1; lnCtr++){            
@@ -808,20 +817,21 @@ public class Sales implements XMasDetTrans{
                                                     " AND nEntryNox = " + (int) loDetail.get(lnCtr).getValue("nEntryNox"));
                 }
                 
-                if (!lsSQL.equals("")){
-                    if(p_oNautilus.executeUpdate(lsSQL, loDetail.get(lnCtr).getTable(), p_sBranchCd, "") == 0){
+                if (!lsSQL.equals("")){                    
+                    if(p_oNautilus.executeUpdate(lsSQL, loDetail.get(lnCtr).getTable(), p_sBranchCd, "") <= 0){
                         if(!p_oNautilus.getMessage().isEmpty()){                             
                             setMessage(p_oNautilus.getMessage());
                             return false;
                         }
-                    }else {
-                        setMessage("No record to update.");
                     }
+                } else {
+                    setMessage("No record to update.");
+                    return false;
                 }
             }
         }
         
-        int lnRow = loadDetail((String) foMaster.getValue("sTransNox")).size();
+        lnRow = loadDetail((String) foMaster.getValue("sTransNox")).size();
         //is the new detail is less than the original count then delete the excess old records
         if (lnCtr < lnRow -1){
             for (lnCtr = lnCtr + 1; lnCtr <= lnRow; lnCtr++){
@@ -925,15 +935,20 @@ public class Sales implements XMasDetTrans{
         }
         
         p_oMaster.setValue("nTranTotl", lnTranTotal);
-        saveToDisk("1");
+        saveToDisk(RecordStatus.ACTIVE);
     }
     
     private boolean isEntryOK(){
-        if ("".equals((String) p_oMaster.getValue("sBranchCd"))){
-            setMessage("Requesting branch is NOT SET.");
-            return false;
+        p_oMaster.setValue("sBranchCd", (String) p_oNautilus.getSysConfig("sBranchCd"));
+        p_oMaster.setValue("dTransact", p_oNautilus.getServerDate());
+        
+        for (int lnCtr = 0; lnCtr <= p_oTemp.size() -1; lnCtr ++){
+            if (p_sOrderNox.equals(p_oTemp.get(lnCtr).getOrderNo())){
+                p_oMaster.setValue("dCreatedx", p_oTemp.get(lnCtr).getDateCreated());
+            }
         }
-    
+        
+        //todo: add validations here
         return true;
     }
     
@@ -949,18 +964,29 @@ public class Sales implements XMasDetTrans{
                     loArray = (JSONArray) loJSON.get("payload");
                     loJSON = (JSONObject) loArray.get(0);
                     
+                    //check if the stock id was already exists
+                    boolean lbExist = false;
+                    
+                    for (int lnCtr = 0; lnCtr <= getItemCount() - 1; lnCtr ++){
+                        if (((String) p_oDetail.get(lnCtr).getValue("sStockIDx")).equals((String) loJSON.get("sStockIDx"))){
+                            fnRow = lnCtr;
+                            lbExist = true;
+                            break;
+                        }
+                    }
+                    
                     p_oDetail.get(fnRow).setValue("sStockIDx", (String) loJSON.get("sStockIDx"));
                     p_oDetail.get(fnRow).setValue("nInvCostx", (Number) loJSON.get("nUnitPrce"));
                     p_oDetail.get(fnRow).setValue("nUnitPrce", (Number) loJSON.get("nSelPrce1"));
-                    p_oDetail.get(fnRow).setValue("nQuantity", (long) 1);
+                    p_oDetail.get(fnRow).setValue("nQuantity", (long) (int) p_oDetail.get(fnRow).getValue("nQuantity") + (long) 1);
                 
                     p_oOthers.get(fnRow).setBarCode((String) loJSON.get("sBarCodex"));
                     p_oOthers.get(fnRow).setDescript((String) loJSON.get("sDescript"));
                     p_oOthers.get(fnRow).setOtherInfo("Other Info");
                     p_oOthers.get(fnRow).setQtyOnHand(100);
-                    addDetail();
+                    
+                    if (!lbExist) addDetail();
                 }
-                
         }
     }
 }
