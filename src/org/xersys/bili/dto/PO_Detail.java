@@ -1,7 +1,6 @@
 package org.xersys.bili.dto;
 
 import java.io.Serializable;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.Objects;
 import javax.persistence.Basic;
@@ -9,8 +8,6 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
-import javax.persistence.Temporal;
-import javax.persistence.TemporalType;
 import org.json.simple.JSONObject;
 import org.xersys.kumander.iface.XEntity;
 
@@ -127,12 +124,12 @@ public class PO_Detail implements Serializable, XEntity {
     public void setValue(int fnColumn, Object foValue) {
         switch(fnColumn){
             case 1: sTransNox = (String) foValue; break;
-            case 2: nEntryNox = (int) foValue; break;
+            case 2: nEntryNox = (int) (long) foValue; break;
             case 3: sStockIDx = (String) foValue; break;
-            case 4: nQuantity = (int) foValue; break;
+            case 4: nQuantity = (int) (long) foValue; break;
             case 5: nUnitPrce = (Number) foValue; break;
-            case 6: nReceived = (int) foValue; break;
-            case 7: nCancelld = (int) foValue; break;
+            case 6: nReceived = (int) (long) foValue; break;
+            case 7: nCancelld = (int) (long) foValue; break;
         }     
     }
 

@@ -101,9 +101,6 @@ public class PO_Master implements Serializable, XEntity {
     @Temporal(TemporalType.TIMESTAMP)
     private Date dPostedxx;
     
-    @Column(name = "sModified")
-    private String sModified;
-    
     @Basic(optional = false)
     @Column(name = "dModified")
     @Temporal(TemporalType.TIMESTAMP)
@@ -137,7 +134,6 @@ public class PO_Master implements Serializable, XEntity {
         laColumns.add("sAprvCode");
         laColumns.add("sPostedxx");
         laColumns.add("dPostedxx");
-        laColumns.add("sModified");
         laColumns.add("dModified");
         
         sTransNox = "";
@@ -160,7 +156,6 @@ public class PO_Master implements Serializable, XEntity {
         sApproved = "";
         sAprvCode = "";
         sPostedxx = "";
-        sModified = "";
     }
     
     @Override
@@ -212,8 +207,7 @@ public class PO_Master implements Serializable, XEntity {
             case 22: return sAprvCode;
             case 23: return sPostedxx;
             case 24: return dPostedxx;
-            case 25: return sModified;
-            case 26: return dModified;
+            case 25: return dModified;
             default: return null;
         }
     }
@@ -257,8 +251,8 @@ public class PO_Master implements Serializable, XEntity {
             case 11: sSourceNo = (String) foValue; break;
             case 12: sSourceCd = (String) foValue; break;
             case 13: cEmailSnt = (String) foValue; break;
-            case 14: nEmailSnt = (int) foValue; break;
-            case 15: nEntryNox = (int) foValue; break;
+            case 14: nEmailSnt = (int) (long) foValue; break;
+            case 15: nEntryNox = (int) (long) foValue; break;
             case 16: sInvTypCd = (String) foValue; break;
             case 17: cTranStat = (String) foValue; break;
             case 18: sPrepared = (String) foValue; break;
@@ -268,8 +262,7 @@ public class PO_Master implements Serializable, XEntity {
             case 22: sAprvCode = (String) foValue; break;
             case 23: sPostedxx = (String) foValue; break;
             case 24: dPostedxx = (Date) foValue; break;
-            case 25: sModified = (String) foValue; break;
-            case 26: dModified = (Date) foValue; break;
+            case 25: dModified = (Date) foValue; break;
         }    
     }
 
